@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int) -> None:
@@ -30,7 +31,7 @@ class UpConv(nn.Module):
         return self.up(x)
 
 class UNet(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, n_encoders: int = 2, embedding_size: int = 64, kernel_size: int = 2, stride: int = 2) -> None:
+    def __init__(self, in_channels: int, out_channels: int, n_encoders: int = 8, embedding_size: int = 64, kernel_size: int = 2, stride: int = 2) -> None:
         super(UNet, self).__init__()
         self.maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride)
 
@@ -64,11 +65,15 @@ class UNet(nn.Module):
 
         for i, (upconv, convblock) in enumerate(zip(self.upconvs, self.convblocks)):
             x = upconv(x)
-            # print('before:', x.shape, encoder_outputs[-(i + 1)].shape)
-            # for a, e in enumerate(encoder_outputs):
-            #     print(f'{i}, {a} encoder:', e.shape)
-            x = torch.cat((encoder_outputs[-(i + 1)], x), dim=1)
-            # print('after:', x.shape)
+            enc_out = encoder_outputs[-(i + 1)]
+
+            # Ensure dimensions match by cropping
+            if x.shape[2:] != enc_out.shape[2:]:
+                diffY = enc_out.size(2) - x.size(2)
+                diffX = enc_out.size(3) - x.size(3)
+                x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+
+            x = torch.cat((enc_out, x), dim=1)
             x = convblock(x)
 
         return self.final_conv(x)
