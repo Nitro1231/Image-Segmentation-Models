@@ -5,14 +5,14 @@ from torch.utils.data import Dataset
 
 
 class BrainScanDataset(Dataset):
-    def __init__(self, data_paths):
+    def __init__(self, data_paths: list[str]) -> None:
         self.data_paths = data_paths
         np.random.shuffle(self.data_paths)
 
     def __len__(self):
         return len(self.data_paths)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[np.ndarray]:
         file_path = self.data_paths[idx]
         with h5py.File(file_path, 'r') as file:
             image = file['image'][()]

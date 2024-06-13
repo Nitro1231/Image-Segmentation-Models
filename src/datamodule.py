@@ -17,7 +17,7 @@ class BrainScanDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # This is called only once and on only one GPU
-        h5_files = [f for f in os.listdir(self.data_dir) if f.endswith('.h5')]
+        h5_files = [os.path.join(self.data_dir, f) for f in os.listdir(self.data_dir) if f.endswith('.h5')]
         np.random.shuffle(h5_files)
         self.h5_files = h5_files
 
@@ -28,15 +28,14 @@ class BrainScanDataModule(pl.LightningDataModule):
         val_files = self.h5_files[split_idx:]
 
         self.train_dataset = BrainScanDataset(train_files)
-        self.val_dataset = BrainScanDataset(val_files, deterministic=True)
+        self.val_dataset = BrainScanDataset(val_files)
 
     def print_info(self):
         print('Number of `.h5` files:', len(self.h5_files))
         print('Example file names:', self.h5_files[:3])
         print()
 
-        file_path = os.path.join(self.data_dir, self.h5_files[0])
-        with h5py.File(file_path, 'r') as file:
+        with h5py.File(file_path[0], 'r') as file:
             print('Keys for each file:', list(file.keys()))
             for key in file.keys():
                 print(f'Data type of {key}:', type(file[key][()]))
